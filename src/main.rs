@@ -1,3 +1,5 @@
+use ccg2lambda_rs::func;
+
 fn main() {
-    println!("Hello, world!");
+    func();
 }
