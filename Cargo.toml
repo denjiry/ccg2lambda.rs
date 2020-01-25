@@ -1,5 +1,5 @@
 [package]
-name = "ccg2lambda"
+name = "ccg2lambda-rs"
 version = "0.1.0"
 authors = ["kento tajiri <k.denjiry@gmail.com>"]
 edition = "2018"
