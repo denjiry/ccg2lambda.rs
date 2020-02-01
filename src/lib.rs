@@ -94,16 +94,17 @@ struct CCG {
     pub root: String,
 }
 
-enum SentenceEnum {
-    Id(String),
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum TextEnum {
+    Text(String),
 }
 
 #[derive(Debug, Deserialize)]
 struct Sentence {
     pub id: String,
+    pub text: TextEnum,
     pub tokens: Tokens,
-    #[serde(rename = "$value")]
-    pub text: String,
     pub ccg: Vec<CCG>,
 }
 
