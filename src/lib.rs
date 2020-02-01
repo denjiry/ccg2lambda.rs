@@ -37,31 +37,48 @@ pub fn func() {
     let project: Project = from_reader(s.as_bytes()).unwrap();
     println!("{:#?}", project);
 }
+
+// #[derive(Debug, Deserialize)]
+// struct Ro {
+//     #[serde(rename = "$value")]
+//     items: Vec<Elems>,
+// }
+
+// #[derive(Debug, Deserialize)]
+// #[serde(rename_all = "lowercase")]
+// enum Elems {
+//     Foo(String),
+//     Bar(String),
+// }
 #[derive(Debug, Deserialize)]
-struct Ro {
-    #[serde(rename = "$value")]
-    items: Vec<Elems>,
+struct Sen {
+    pub id: String,
+    // #[serde(rename = "$value", default)]
+    // pub body: String,
+    pub tokens: Tokens,
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "lowercase")]
-enum Elems {
-    Foo(String),
-    Bar(String),
+struct Tokens {
+    pub token: Vec<Token>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum TextEnum {
+    Text(String),
 }
 
 pub fn ff() {
-    let input = r##"<ro>
-        <foo>abc</foo>
-        <foo>def</foo>
+    let input = r##"
+      <sen id="s0">
+        ソクラテスは人間である。
+        <tokens>
+          <token reading="ソクラテス" base="ソクラテス" inflectionForm="*" inflectionType="*" pos3="姓" pos2="人名" pos1="固有名詞" pos="名詞" surf="ソクラテス" id="s0_0"/>
+        </tokens>
+      </sen>"##;
 
-        <bar>lmn</bar>
-        <bar>opq</bar>
-
-        <foo>ghi</foo>
-        </ro>"##;
-
-    let res: Ro = from_reader(input.as_bytes()).unwrap();
+    let res: Sen = from_reader(input.as_bytes()).unwrap();
 
     println!("{:?}", res);
 }
@@ -70,9 +87,9 @@ pub fn ff() {
 struct Token {
     pub reading: String,
     pub base: String,
-    #[serde(rename = "inflectionForm")]
+    #[serde(rename = "inflectionForm", default)]
     pub inflection_form: String,
-    #[serde(rename = "inflectionType")]
+    #[serde(rename = "inflectionType", default)]
     pub inflection_type: String,
     pub pos3: String,
     pub pos2: String,
@@ -83,21 +100,10 @@ struct Token {
 }
 
 #[derive(Debug, Deserialize)]
-struct Tokens {
-    pub tokens: Vec<Token>,
-}
-
-#[derive(Debug, Deserialize)]
 struct CCG {
     pub score: String,
     pub id: String,
     pub root: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(untagged)]
-enum TextEnum {
-    Text(String),
 }
 
 #[derive(Debug, Deserialize)]
