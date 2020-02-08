@@ -27,10 +27,22 @@ struct Token {
 }
 
 #[derive(Debug, Deserialize)]
+struct Span {
+    // pub child: String,
+    // pub rule: String,
+    // pub terminal: String,
+    pub category: String,
+    pub end: u64,
+    pub begin: u64,
+    pub id: String,
+}
+
+#[derive(Debug, Deserialize)]
 struct CCG {
     pub score: String,
     pub id: String,
     pub root: String,
+    pub span: Vec<Span>,
 }
 
 #[derive(Debug, Deserialize)]
