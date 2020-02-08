@@ -1,17 +1,17 @@
 #[macro_use]
 extern crate serde_derive;
 extern crate serde;
-extern crate serde_xml_rs;
+use serde_xml_rs;
 
 use serde_xml_rs::from_reader;
 
 #[test]
 fn test() {
-    parse_jigg()
+    parse_jigg();
 }
 
 #[derive(Debug, Deserialize)]
-struct Token {
+pub struct Token {
     pub reading: String,
     pub base: String,
     #[serde(rename = "inflectionForm", default)]
@@ -27,25 +27,25 @@ struct Token {
 }
 
 #[derive(Debug, Deserialize)]
-struct ChildRule {
+pub struct ChildRule {
     pub child: String,
     pub rule: String,
 }
 
 #[derive(Debug, Deserialize)]
-struct Terminal {
+pub struct Terminal {
     pub terminal: String,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
-enum ChildRuleTerminal {
+pub enum ChildRuleTerminal {
     ChildRule { child: String, rule: String },
     Terminal { terminal: String },
 }
 
 #[derive(Debug, Deserialize)]
-struct Span {
+pub struct Span {
     #[serde(flatten)]
     pub childruleterminal: ChildRuleTerminal,
     pub category: String,
@@ -55,7 +55,7 @@ struct Span {
 }
 
 #[derive(Debug, Deserialize)]
-struct CCG {
+pub struct CCG {
     pub score: String,
     pub id: String,
     pub root: String,
@@ -63,35 +63,34 @@ struct CCG {
 }
 
 #[derive(Debug, Deserialize)]
-struct Tokens {
+pub struct Tokens {
     pub token: Vec<Token>,
 }
 
 #[derive(Debug, Deserialize)]
-struct Sentence {
+pub struct Sentence {
     pub id: String,
     pub tokens: Tokens,
     pub ccg: Vec<CCG>,
 }
 
 #[derive(Debug, Deserialize)]
-struct Sentences {
+pub struct Sentences {
     pub sentence: Vec<Sentence>,
 }
 
 #[derive(Debug, Deserialize)]
-struct Document {
+pub struct Document {
     pub id: String,
     pub sentences: Sentences,
 }
 
 #[derive(Debug, Deserialize)]
-struct Root {
-    #[serde(rename = "document", default)]
-    pub documents: Vec<Document>,
+pub struct Root {
+    pub document: Document,
 }
 
-pub fn parse_jigg() {
+pub fn parse_jigg() -> Root {
     let s = r##"
 <?xml version='1.0' encoding='UTF-8'?>
 <root>
@@ -235,4 +234,5 @@ pub fn parse_jigg() {
 </root>"##;
     let ccg: Root = from_reader(s.as_bytes()).unwrap();
     println!("{:#?}", ccg);
+    ccg
 }
