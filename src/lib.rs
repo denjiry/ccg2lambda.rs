@@ -7,80 +7,7 @@ use serde_xml_rs::from_reader;
 
 #[test]
 fn test() {
-    func();
-    ff();
     parse_jigg()
-}
-
-#[derive(Debug, Deserialize)]
-struct Item {
-    pub name: String,
-    pub source: String,
-}
-
-#[derive(Debug, Deserialize)]
-struct Project {
-    pub name: String,
-
-    #[serde(rename = "Item", default)]
-    pub items: Vec<Item>,
-}
-
-pub fn func() {
-    let s = r##"
-        <?xml version='1.0' encoding='UTF-8'?>
-        <Project name="my_project">
-            <Item name="hello" source="world.rs" />
-            <Item name="hello" source="world.rs" />
-        </Project>
-    "##;
-    let project: Project = from_reader(s.as_bytes()).unwrap();
-    println!("{:#?}", project);
-}
-
-// #[derive(Debug, Deserialize)]
-// struct Ro {
-//     #[serde(rename = "$value")]
-//     items: Vec<Elems>,
-// }
-
-// #[derive(Debug, Deserialize)]
-// #[serde(rename_all = "lowercase")]
-// enum Elems {
-//     Foo(String),
-//     Bar(String),
-// }
-#[derive(Debug, Deserialize)]
-struct Sen {
-    pub id: String,
-    // #[serde(rename = "$value", default)]
-    // pub body: String,
-    pub tokens: Tokens,
-}
-
-#[derive(Debug, Deserialize)]
-struct Tokens {
-    pub token: Vec<Token>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(untagged)]
-enum TextEnum {
-    Text(String),
-}
-
-pub fn ff() {
-    let input = r##"
-      <sen id="s0">
-        ソクラテスは人間である。
-        <tokens>
-          <token reading="ソクラテス" base="ソクラテス" inflectionForm="*" inflectionType="*" pos3="姓" pos2="人名" pos1="固有名詞" pos="名詞" surf="ソクラテス" id="s0_0"/>
-        </tokens>
-      </sen>"##;
-
-    let res: Sen = from_reader(input.as_bytes()).unwrap();
-
-    println!("{:?}", res);
 }
 
 #[derive(Debug, Deserialize)]
@@ -107,9 +34,13 @@ struct CCG {
 }
 
 #[derive(Debug, Deserialize)]
+struct Tokens {
+    pub token: Vec<Token>,
+}
+
+#[derive(Debug, Deserialize)]
 struct Sentence {
     pub id: String,
-    pub text: TextEnum,
     pub tokens: Tokens,
     pub ccg: Vec<CCG>,
 }
