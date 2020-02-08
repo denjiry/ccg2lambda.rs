@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate serde_derive;
-extern crate serde;
 use serde_xml_rs;
 
 use serde_xml_rs::from_reader;
