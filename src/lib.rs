@@ -27,10 +27,27 @@ struct Token {
 }
 
 #[derive(Debug, Deserialize)]
+struct ChildRule {
+    pub child: String,
+    pub rule: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct Terminal {
+    pub terminal: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum ChildRuleTerminal {
+    ChildRule { child: String, rule: String },
+    Terminal { terminal: String },
+}
+
+#[derive(Debug, Deserialize)]
 struct Span {
-    // pub child: String,
-    // pub rule: String,
-    // pub terminal: String,
+    #[serde(flatten)]
+    pub childruleterminal: ChildRuleTerminal,
     pub category: String,
     pub end: u64,
     pub begin: u64,
