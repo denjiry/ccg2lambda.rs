@@ -24,7 +24,7 @@ fn space2lam(mut input: String) -> String {
 }
 
 pub fn string2lambda() {
-    let s = "λL.λR.λQ.λN.λF. forall x.(Q(λG.N(λy.(G(y) & (x = y))), λy.True) -> F(x))".to_string();
+    let s = "λL R Q N F. forall x.(Q(λG.N(λy.(G(y) & (x = y))), λy.True) -> F(x))".to_string();
     let replaced = space2lam(s);
     let p = parse(&replaced, Classic);
     println!("{:#?}", p);
