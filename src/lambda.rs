@@ -40,6 +40,23 @@ pub fn combine() -> Result<((String, i64), &'static str), Errors<char, &'static 
     result
 }
 
+struct LambdaTerm {
+    bind: Vec<String>,
+    formula: Box<Term>,
+}
+
+enum Term {
+    Name(String),
+    Lambda(LambdaTerm),
+    Forall(LambdaTerm),
+    Exists(LambdaTerm),
+    Apply(Box<Term>, Box<Term>),
+    Equal(Box<Term>, Box<Term>),
+    Imply(Box<Term>, Box<Term>),
+    And(Box<Term>, Box<Term>),
+    Negate(Box<Term>),
+}
+
 #[test]
 fn test() {
     let result = parse(&"λa.a", Classic);
