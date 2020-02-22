@@ -12,7 +12,7 @@ use lambda_calculus::{parse, Classic};
 fn test_combine() {
     // assert_eq!(result, Ok(((Borrowed("identifier"), 42), "")));
     let result = combine();
-    assert_eq!(result, Ok(((String::from("forall"), 42), "")));
+    assert_eq!(result, Ok(((String::from("forallx"), 42), "")));
 }
 
 pub fn combine() -> Result<((String, i64), &'static str), Errors<char, &'static str, PointerOffset>>
