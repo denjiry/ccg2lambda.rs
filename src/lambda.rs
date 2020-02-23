@@ -1,7 +1,6 @@
 extern crate combine;
 extern crate combine_language;
 use combine::char::{alpha_num, letter, string};
-use combine::combinator::many;
 use combine::easy::Errors;
 use combine::stream::PointerOffset;
 use combine::{satisfy, Parser};
@@ -12,17 +11,18 @@ use lambda_calculus::{parse, Classic};
 fn test_combine() {
     // assert_eq!(result, Ok(((Borrowed("identifier"), 42), "")));
     let result = combine();
-    assert_eq!(result, Ok(((String::from("forallx"), 42), "")));
+    assert_eq!(result, Ok((("forall", String::from("x"), 42), "")));
 }
 
-pub fn combine() -> Result<((String, i64), &'static str), Errors<char, &'static str, PointerOffset>>
+pub fn combine(
+) -> Result<((&'static str, String, i64), &'static str), Errors<char, &'static str, PointerOffset>>
 {
     // pub fn combine() -> () {
     let env = LanguageEnv::new(LanguageDef {
         ident: Identifier {
             start: letter(),
             rest: alpha_num(),
-            reserved: ["for"].iter().map(|x| (*x).into()).collect(),
+            reserved: ["forall"].iter().map(|x| (*x).into()).collect(),
         },
         op: Identifier {
             start: satisfy(|c| "+-*/".chars().any(|x| x == c)),
@@ -35,7 +35,8 @@ pub fn combine() -> Result<((String, i64), &'static str), Errors<char, &'static 
     });
     let id = env.identifier(); //An identifier parser
     let integer = env.integer(); //An integer parser
-    let result = (many(id), integer).easy_parse("forall x  42");
+    let reserved = env.reserved("forall");
+    let result = (reserved, id, integer).easy_parse("forall x  42");
     println!("{:?}", result);
     result
 }
