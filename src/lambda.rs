@@ -1,10 +1,8 @@
 extern crate combine;
 extern crate combine_language;
 use combine::char::{alpha_num, letter, string};
-use combine::easy::Errors;
 use combine::error::ParseError;
-use combine::stream::PointerOffset;
-use combine::{parser, satisfy, ParseResult, Parser, Positioned, Stream, StreamOnce};
+use combine::{chainl1, many1, parser, satisfy, ParseResult, Parser, Stream};
 use combine_language::{Identifier, LanguageDef, LanguageEnv};
 use lambda_calculus::{parse, Classic};
 
@@ -12,18 +10,15 @@ use lambda_calculus::{parse, Classic};
 fn test_combine() {
     // assert_eq!(result, Ok(((Borrowed("identifier"), 42), "")));
     let result = combine();
-    assert_eq!(result, Ok((("forall", String::from("x"), 42), "")));
+    println!("{:?}", result);
 }
 
-pub fn combine(
-) -> Result<((&'static str, String, i64), &'static str), Errors<char, &'static str, PointerOffset>>
-{
+pub fn combine() -> ParseResult<Box<Term>, str> {
     // pub fn combine() -> () {
     let env = calc_env();
-    let id = env.identifier(); //An identifier parser
-    let integer = env.integer(); //An integer parser
-    let reserved = env.reserved("forall");
-    let result = (reserved, id, integer).easy_parse("forall x  42");
+    let parser = parser(term);
+    let mut input = "a".to_string();
+    let result = parser.parse_stream(input);
     println!("{:?}", result);
     result
 }
@@ -41,9 +36,12 @@ where
             reserved: ["forall"].iter().map(|x| (*x).into()).collect(),
         },
         op: Identifier {
-            start: satisfy(|c| "+-*/".chars().any(|x| x == c)),
-            rest: satisfy(|c| "+-*/".chars().any(|x| x == c)),
-            reserved: ["+", "-", "*", "/"].iter().map(|x| (*x).into()).collect(),
+            start: satisfy(|c| "=-/".chars().any(|x| x == c)),
+            rest: satisfy(|c| "=>\\-".chars().any(|x| x == c)),
+            reserved: ["=", "->", "/\\", "-"]
+                .iter()
+                .map(|x| (*x).into())
+                .collect(),
         },
         comment_start: string("/*").map(|_| ()),
         comment_end: string("*/").map(|_| ()),
@@ -51,19 +49,41 @@ where
     })
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct LambdaTerm {
-    bind: Vec<String>,
-    formula: Box<Term>,
+fn term<I>(input: &mut I) -> ParseResult<Box<Term>, I>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    let env = calc_env();
+    // let parenthesized = env.parens(parser(term));
+    let name = env.identifier().map(|name| Box::new(Term::Name(name)));
+    name.parse_stream(input)
+    // parenthesized.or(name).parse_stream(input)
 }
 
+// fn lambda_term<I>(input: I) -> ParseResult<Box<Term>, I>
+// where
+//     I: Stream<Item = char>,
+//     I::Error: ParseError<I::Item, I::Range, I::Position>,
+// {
+//     let env = calc_env();
+//     let parenthesized = env.parens(parser(term));
+//     parenthesized.parse_stream(term)
+// }
+
+// #[derive(Debug, Clone, PartialEq, Eq)]
+// struct LambdaTerm {
+//     bind: Vec<String>,
+//     formula: Box<Term>,
+// }
+
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum Term {
+pub enum Term {
     Name(String),
-    Lambda(LambdaTerm),
-    Forall(LambdaTerm),
-    Exists(LambdaTerm),
-    Apply(Box<Term>, Box<Term>),
+    // Lambda(LambdaTerm),
+    // Forall(LambdaTerm),
+    // Exists(LambdaTerm),
+    // Apply(Box<Term>, Box<Term>),
     Equal(Box<Term>, Box<Term>),
     Imply(Box<Term>, Box<Term>),
     And(Box<Term>, Box<Term>),
