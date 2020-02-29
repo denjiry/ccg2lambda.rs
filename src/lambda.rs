@@ -2,8 +2,9 @@ extern crate combine;
 extern crate combine_language;
 use combine::char::{alpha_num, letter, string};
 use combine::easy::Errors;
+use combine::error::ParseError;
 use combine::stream::PointerOffset;
-use combine::{satisfy, Parser};
+use combine::{parser, satisfy, ParseResult, Parser, Positioned, Stream, StreamOnce};
 use combine_language::{Identifier, LanguageDef, LanguageEnv};
 use lambda_calculus::{parse, Classic};
 
@@ -18,7 +19,22 @@ pub fn combine(
 ) -> Result<((&'static str, String, i64), &'static str), Errors<char, &'static str, PointerOffset>>
 {
     // pub fn combine() -> () {
-    let env = LanguageEnv::new(LanguageDef {
+    let env = calc_env();
+    let id = env.identifier(); //An identifier parser
+    let integer = env.integer(); //An integer parser
+    let reserved = env.reserved("forall");
+    let result = (reserved, id, integer).easy_parse("forall x  42");
+    println!("{:?}", result);
+    result
+}
+
+fn calc_env<'a, I>() -> LanguageEnv<'a, I>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+    I: 'a,
+{
+    LanguageEnv::new(LanguageDef {
         ident: Identifier {
             start: letter(),
             rest: alpha_num(),
@@ -32,20 +48,16 @@ pub fn combine(
         comment_start: string("/*").map(|_| ()),
         comment_end: string("*/").map(|_| ()),
         comment_line: string("//").map(|_| ()),
-    });
-    let id = env.identifier(); //An identifier parser
-    let integer = env.integer(); //An integer parser
-    let reserved = env.reserved("forall");
-    let result = (reserved, id, integer).easy_parse("forall x  42");
-    println!("{:?}", result);
-    result
+    })
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct LambdaTerm {
     bind: Vec<String>,
     formula: Box<Term>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum Term {
     Name(String),
     Lambda(LambdaTerm),
