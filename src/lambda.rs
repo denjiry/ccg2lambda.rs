@@ -2,22 +2,28 @@ extern crate combine;
 extern crate combine_language;
 use combine::char::{alpha_num, letter, string};
 use combine::error::ParseError;
-use combine::{chainl1, many1, parser, satisfy, ParseResult, Parser, Stream};
+use combine::{chainl1, many1, parser, satisfy, ParseResult, Parser, Stream, StreamOnce};
 use combine_language::{Identifier, LanguageDef, LanguageEnv};
 use lambda_calculus::{parse, Classic};
 
 #[test]
 fn test_combine() {
     // assert_eq!(result, Ok(((Borrowed("identifier"), 42), "")));
-    let result = combine();
+    let mut input = "input";
+    let result = combine(&mut input);
     println!("{:?}", result);
 }
 
-pub fn combine() -> ParseResult<Box<Term>, str> {
+pub fn combine<'a, I>(input: &mut I) -> ParseResult<Box<Term>, I>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+    I: 'a,
+    <I as StreamOnce>::Error: std::fmt::Debug,
+{
     // pub fn combine() -> () {
-    let env = calc_env();
-    let parser = parser(term);
-    let mut input = "a".to_string();
+    let env = calc_env::<'a, I>();
+    let mut parser = parser(term);
     let result = parser.parse_stream(input);
     println!("{:?}", result);
     result
@@ -56,7 +62,7 @@ where
 {
     let env = calc_env();
     // let parenthesized = env.parens(parser(term));
-    let name = env.identifier().map(|name| Box::new(Term::Name(name)));
+    let mut name = env.identifier().map(|name| Box::new(Term::Name(name)));
     name.parse_stream(input)
     // parenthesized.or(name).parse_stream(input)
 }
