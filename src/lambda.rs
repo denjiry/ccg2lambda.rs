@@ -2,13 +2,13 @@ extern crate combine;
 extern crate combine_language;
 use combine::char::{alpha_num, letter, string};
 use combine::error::ParseError;
-use combine::{parser, satisfy, ParseResult, Parser, Stream, StreamOnce};
+use combine::{between, chainl1, parser, satisfy, ParseResult, Parser, Stream, StreamOnce};
 use combine_language::{Identifier, LanguageDef, LanguageEnv};
 
 #[test]
 fn test_combine() {
     // assert_eq!(result, Ok(((Borrowed("identifier"), 42), "")));
-    let mut input = "(input)";
+    let mut input = "\\ G.G";
     let result = combine(&mut input);
     println!("{:?}", result);
 }
@@ -20,7 +20,7 @@ where
     I: 'a,
     <I as StreamOnce>::Error: std::fmt::Debug,
 {
-    let mut parser = parser(term);
+    let mut parser = parser(lambda_term);
     let result = parser.parse_stream(input);
     println!("{:?}", result);
     result
@@ -39,12 +39,9 @@ where
             reserved: ["forall"].iter().map(|x| (*x).into()).collect(),
         },
         op: Identifier {
-            start: satisfy(|c| "=-/".chars().any(|x| x == c)),
-            rest: satisfy(|c| "=>\\-".chars().any(|x| x == c)),
-            reserved: ["=", "->", "/\\", "-"]
-                .iter()
-                .map(|x| (*x).into())
-                .collect(),
+            start: satisfy(|c| "=-&".chars().any(|x| x == c)),
+            rest: satisfy(|c| "=>-".chars().any(|x| x == c)),
+            reserved: ["=", "->", "&", "-"].iter().map(|x| (*x).into()).collect(),
         },
         comment_start: string("/*").map(|_| ()),
         comment_end: string("*/").map(|_| ()),
@@ -60,19 +57,40 @@ where
     let env = calc_env();
     let parenthesized = env.parens(parser(term));
     let name = env.identifier().map(|name| Box::new(Term::Name(name)));
-    // name.parse_stream(input)
     parenthesized.or(name).parse_stream(input)
 }
 
-// fn lambda_term<I>(input: I) -> ParseResult<Box<Term>, I>
-// where
-//     I: Stream<Item = char>,
-//     I::Error: ParseError<I::Item, I::Range, I::Position>,
-// {
-//     let env = calc_env();
-//     let parenthesized = env.parens(parser(term));
-//     parenthesized.parse_stream(term)
-// }
+fn binop<I>(input: &mut I) -> ParseResult<Box<Term>, I>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    let env = calc_env();
+    let op = env.reserved_op("=").or(env.reserved_op("->")).map(|op| {
+        move |lhs, rhs| {
+            if op == "=" {
+                Box::new(Term::Equal(lhs, rhs))
+            } else if op == "->" {
+                Box::new(Term::Imply(lhs, rhs))
+            } else {
+                unreachable!()
+            }
+        }
+    });
+    chainl1(parser(term), op).parse_stream(input)
+}
+
+fn lambda_term<I>(input: &mut I) -> ParseResult<Box<Term>, I>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    let env = calc_env();
+    let name = env.identifier().map(|name| Box::new(Term::Name(name)));
+    let mut lambda = between(string("\\"), string("."), name);
+    // let l_term = parser(term);
+    lambda.parse_stream(input)
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LambdaTerm {
