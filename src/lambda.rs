@@ -8,7 +8,7 @@ use combine_language::{Identifier, LanguageDef, LanguageEnv};
 #[test]
 fn test_combine() {
     // assert_eq!(result, Ok(((Borrowed("identifier"), 42), "")));
-    let mut input = "\\ G.G";
+    let mut input = "\\G.G";
     let result = combine(&mut input);
     println!("{:?}", result);
 }
@@ -87,7 +87,7 @@ where
 {
     let env = calc_env();
     let name = env.identifier().map(|name| Box::new(Term::Name(name)));
-    let mut lambda = between(string("\\"), string("."), name);
+    let mut lambda = between(env.lex(string("\\")), env.lex(string(".")), name);
     // let l_term = parser(term);
     lambda.parse_stream(input)
 }
