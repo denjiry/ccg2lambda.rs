@@ -1,19 +1,18 @@
-extern crate combine;
-extern crate combine_language;
+use combine;
 use combine::char::{alpha_num, letter, string};
 use combine::error::ParseError;
 use combine::{between, chainl1, parser, satisfy, ParseResult, Parser, Stream, StreamOnce};
+use combine_language;
 use combine_language::{Identifier, LanguageDef, LanguageEnv};
 
 #[test]
 fn test_combine() {
-    // assert_eq!(result, Ok(((Borrowed("identifier"), 42), "")));
     let mut input = "\\G.G";
-    let result = combine(&mut input);
+    let result = cmb(&mut input);
     println!("{:?}", result);
 }
 
-pub fn combine<'a, I>(input: &mut I) -> ParseResult<Box<Term>, I>
+pub fn cmb<'a, I>(input: &mut I) -> ParseResult<Box<Term>, I>
 where
     I: Stream<Item = char>,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
