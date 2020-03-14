@@ -19,7 +19,7 @@ where
     I: 'a,
     <I as StreamOnce>::Error: std::fmt::Debug,
 {
-    let mut parser = parser(term);
+    let mut parser = parser(lambda_term);
     let result = parser.parse_stream(input);
     result
 }
@@ -99,14 +99,26 @@ where
     bind.parse_stream(input)
 }
 
-// fn lambda_term<I>(input: &mut I) -> ParseResult<Box<Term>, I>
-// where
-//     I: Stream<Item = char>,
-//     I::Error: ParseError<I::Item, I::Range, I::Position>,
-// {
-//     let formula = term;
-//     bind.and_then(formula).parse_stream(input)
-// }
+#[test]
+fn test_lambda_term() {
+    let mut input = "\\ A B . (A)";
+    let r = lambda_term(&mut input);
+    let bind: Vec<String> = ["A", "B"].iter().map(|&s| s.into()).collect();
+    let term = Box::new(Term::Var("A".to_string()));
+    let expected = Box::new(Term::Lambda(bind, term));
+    assert_eq!(r, Ok((expected, Consumed(()))));
+}
+
+fn lambda_term<I>(input: &mut I) -> ParseResult<Box<Term>, I>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    parser(bind)
+        .and(parser(term))
+        .map(|(bind, term): (Vec<String>, Box<Term>)| Box::new(Term::Lambda(bind, term)))
+        .parse_stream(input)
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Term {
