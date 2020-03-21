@@ -19,7 +19,7 @@ where
     I: 'a,
     <I as StreamOnce>::Error: std::fmt::Debug,
 {
-    let mut parser = parser(lambda_term);
+    let mut parser = parser(expr);
     let result = parser.parse_stream(input);
     result
 }
@@ -47,6 +47,16 @@ where
     })
 }
 
+fn expr<I>(input: &mut I) -> ParseResult<Box<Term>, I>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    let term = parser(term);
+    let binop = parser(binop);
+    binop.or(term).parse_stream(input)
+}
+
 fn term<I>(input: &mut I) -> ParseResult<Box<Term>, I>
 where
     I: Stream<Item = char>,
@@ -54,9 +64,11 @@ where
 {
     let env = calc_env();
     let parenthesized = env.parens(parser(term));
+    let lambda_term = parser(lambda_term);
     let var = env.identifier().map(|var: String| Box::new(Term::Var(var)));
-    // let lambda = parser(lambda_term);
-    parenthesized.or(var).parse_stream(input)
+    var.or(parenthesized).or(lambda_term).parse_stream(input)
+}
+
 #[test]
 fn test_binop() {
     let mut bindin = "A&B->C";
@@ -134,8 +146,8 @@ where
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
     parser(bind)
-        .and(parser(term))
-        .map(|(bind, term): (Vec<String>, Box<Term>)| Box::new(Term::Lambda(bind, term)))
+        .and(parser(expr))
+        .map(|(bind, expr): (Vec<String>, Box<Term>)| Box::new(Term::Lambda(bind, expr)))
         .parse_stream(input)
 }
 
