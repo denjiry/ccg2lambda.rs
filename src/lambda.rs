@@ -57,6 +57,19 @@ where
     let var = env.identifier().map(|var: String| Box::new(Term::Var(var)));
     // let lambda = parser(lambda_term);
     parenthesized.or(var).parse_stream(input)
+#[test]
+fn test_binop() {
+    let mut bindin = "A&B->C";
+    let r = binop(&mut bindin);
+    let aandb = Term::And(
+        Box::new(Term::Var("A".to_string())),
+        Box::new(Term::Var("B".to_string())),
+    );
+    let expected = Box::new(Term::Imply(
+        Box::new(aandb),
+        Box::new(Term::Var("C".to_string())),
+    ));
+    assert_eq!(r, Ok((expected, Consumed(()))));
 }
 
 fn binop<I>(input: &mut I) -> ParseResult<Box<Term>, I>
@@ -65,17 +78,23 @@ where
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
     let env = calc_env();
-    let op = env.reserved_op("=").or(env.reserved_op("->")).map(|op| {
-        move |lhs, rhs| {
-            if op == "=" {
-                Box::new(Term::Equal(lhs, rhs))
-            } else if op == "->" {
-                Box::new(Term::Imply(lhs, rhs))
-            } else {
-                unreachable!()
+    let op = env
+        .reserved_op("=")
+        .or(env.reserved_op("->"))
+        .or(env.reserved_op("&"))
+        .map(|op| {
+            move |lhs, rhs| {
+                if op == "=" {
+                    Box::new(Term::Equal(lhs, rhs))
+                } else if op == "->" {
+                    Box::new(Term::Imply(lhs, rhs))
+                } else if op == "&" {
+                    Box::new(Term::And(lhs, rhs))
+                } else {
+                    unreachable!()
+                }
             }
-        }
-    });
+        });
     chainl1(parser(term), op).parse_stream(input)
 }
 
