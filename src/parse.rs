@@ -1,5 +1,3 @@
-use serde_xml_rs;
-
 use serde_xml_rs::from_reader;
 
 #[test]

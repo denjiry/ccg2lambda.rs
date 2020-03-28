@@ -1,8 +1,10 @@
 use combine::char::{alpha_num, letter, string};
-use combine::error::{Consumed::Consumed, ParseError};
+use combine::error::ParseError;
 use combine::{between, chainl1, many1, parser, satisfy, ParseResult, Parser, Stream, StreamOnce};
-use combine_language;
 use combine_language::{Identifier, LanguageDef, LanguageEnv};
+
+#[cfg(test)]
+use combine::error::Consumed::Consumed;
 
 // EXPR = "\", Vec<String>, ".", BINOP | BINOP
 // BINOP = combine::chainl1(UNIOP, "=" | "->" | "&")
