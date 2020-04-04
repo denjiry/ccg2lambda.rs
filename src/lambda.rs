@@ -13,7 +13,7 @@ use combine::error::Consumed::Consumed;
 
 #[test]
 fn test_combine() {
-    let mut input = "\\G F.F&((A&B)->C)";
+    let mut input = "\\G F.F2&((A&B)->C)";
     let result = cmb(&mut input);
     let aandb = Box::new(Term::And(
         Box::new(Term::Var("A".to_string())),
@@ -21,7 +21,7 @@ fn test_combine() {
     ));
     let aandb_implyc = Box::new(Term::Imply(aandb, Box::new(Term::Var("C".to_string()))));
     let body = Box::new(Term::And(
-        Box::new(Term::Var("F".to_string())),
+        Box::new(Term::Var("F2".to_string())),
         aandb_implyc,
     ));
     let binds: Vec<String> = ["G", "F"].iter().map(|&s| s.into()).collect();
