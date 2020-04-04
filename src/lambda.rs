@@ -74,14 +74,28 @@ where
     var.or(parenthesized).parse_stream(input)
 }
 
+fn negate<I>(input: &mut I) -> ParseResult<Box<Term>, I>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    let env = calc_env();
+    let term = parser(term);
+    let mut negate = env
+        .reserved_op("-")
+        .and(term)
+        .map(|(_negate, term)| Box::new(Term::Negate(term)));
+    negate.parse_stream(input)
+}
+
 fn uniop<I>(input: &mut I) -> ParseResult<Box<Term>, I>
 where
     I: Stream<Item = char>,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
-    // currently uniop is empty.
-    let mut term = parser(term);
-    term.parse_stream(input)
+    let negate = parser(negate);
+    let term = parser(term);
+    negate.or(term).parse_stream(input)
 }
 
 #[test]
