@@ -69,7 +69,7 @@ where
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
     let env = calc_env();
-    let parenthesized = env.parens(parser(binop));
+    let parenthesized = env.parens(parser(expr));
     let var = env.identifier().map(|var: String| Box::new(Term::Var(var)));
     var.or(parenthesized).parse_stream(input)
 }
