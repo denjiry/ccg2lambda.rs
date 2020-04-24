@@ -10,8 +10,7 @@ use combine::error::Consumed::Consumed;
 
 // EXPR = "\", Vec<String>, ".", BINOP | BINOP
 // BINOP = combine::chainl1(UNIOP, "=" | "->" | "&")
-// UNIOP = "-", APPLY | APPLY
-// APPLY = Var(String), "(", TERM, ")" | TERM
+// UNIOP = "-", TERM | Var(String), "(", TERM, ")" | TERM
 // TERM = Var(String) | "(", EXPR, ")"
 
 #[test]
@@ -77,6 +76,20 @@ where
     var.or(parenthesized).parse_stream(input)
 }
 
+fn apply<I>(input: &mut I) -> ParseResult<Box<Term>, I>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    let env = calc_env();
+    let var = env.identifier();
+    let parenthesized = env.parens(parser(term));
+    let mut apply = var
+        .and(parenthesized)
+        .map(|(var, term)| Box::new(Term::Apply(Box::new(Term::Var(var)), term)));
+    apply.parse_stream(input)
+}
+
 fn negate<I>(input: &mut I) -> ParseResult<Box<Term>, I>
 where
     I: Stream<Item = char>,
@@ -97,8 +110,9 @@ where
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
     let negate = parser(negate);
+    let apply = parser(apply);
     let term = parser(term);
-    negate.or(term).parse_stream(input)
+    negate.or(attempt(apply)).or(term).parse_stream(input)
 }
 
 #[test]
