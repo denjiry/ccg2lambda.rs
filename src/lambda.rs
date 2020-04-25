@@ -8,9 +8,10 @@ use combine_language::{Identifier, LanguageDef, LanguageEnv};
 #[cfg(test)]
 use combine::error::Consumed::Consumed;
 
-// EXPR = "\", Vec<String>, ".", BINOP | BINOP
+// EXPR = "\", Vec<String>, ".", APP | APP
+// APP = Var(String), "(", BINOP, ")" | BINOP
 // BINOP = combine::chainl1(UNIOP, "=" | "->" | "&")
-// UNIOP = "-", TERM | Var(String), "(", TERM, ")" | TERM
+// UNIOP = "-", TERM | TERM
 // TERM = Var(String) | "(", EXPR, ")"
 
 #[test]
@@ -73,21 +74,7 @@ where
     let env = calc_env();
     let parenthesized = env.parens(parser(expr));
     let var = env.identifier().map(|var: String| Box::new(Term::Var(var)));
-    var.or(parenthesized).parse_stream(input)
-}
-
-fn apply<I>(input: &mut I) -> ParseResult<Box<Term>, I>
-where
-    I: Stream<Item = char>,
-    I::Error: ParseError<I::Item, I::Range, I::Position>,
-{
-    let env = calc_env();
-    let var = env.identifier();
-    let parenthesized = env.parens(parser(term));
-    let mut apply = var
-        .and(parenthesized)
-        .map(|(var, term)| Box::new(Term::Apply(Box::new(Term::Var(var)), term)));
-    apply.parse_stream(input)
+    attempt(var).or(parenthesized).parse_stream(input)
 }
 
 fn negate<I>(input: &mut I) -> ParseResult<Box<Term>, I>
@@ -110,14 +97,13 @@ where
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
     let negate = parser(negate);
-    let apply = parser(apply);
     let term = parser(term);
-    negate.or(attempt(apply)).or(term).parse_stream(input)
+    attempt(negate).or(term).parse_stream(input)
 }
 
 #[test]
 fn test_binop() {
-    let mut bindin = "A&B->C";
+    let mut bindin = "(A&B)->C";
     let r = binop(&mut bindin);
     let aandb = Term::And(
         Box::new(Term::Var("A".to_string())),
@@ -153,7 +139,21 @@ where
                 }
             }
         });
-    chainl1(parser(uniop), binop).parse_stream(input)
+    attempt(chainl1(parser(uniop), binop)).parse_stream(input)
+}
+
+fn apply<I>(input: &mut I) -> ParseResult<Box<Term>, I>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    let env = calc_env();
+    let var = env.identifier();
+    let parenthesized = env.parens(parser(binop));
+    let apply = var
+        .and(parenthesized)
+        .map(|(var, binop)| Box::new(Term::Apply(Box::new(Term::Var(var)), binop)));
+    attempt(apply).or(parser(binop)).parse_stream(input)
 }
 
 #[test]
@@ -192,8 +192,8 @@ where
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
     parser(bind)
-        .and(parser(binop))
-        .map(|(bind, binop): (Vec<String>, Box<Term>)| Box::new(Term::Lambda(bind, binop)))
+        .and(parser(apply))
+        .map(|(bind, apply): (Vec<String>, Box<Term>)| Box::new(Term::Lambda(bind, apply)))
         .parse_stream(input)
 }
 
@@ -203,8 +203,7 @@ where
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
     let lambda_term = parser(lambda_term);
-    let binop = parser(binop);
-    lambda_term.or(binop).parse_stream(input)
+    attempt(lambda_term).or(parser(apply)).parse_stream(input)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
