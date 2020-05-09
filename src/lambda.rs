@@ -1,19 +1,16 @@
 use combine::char::{alpha_num, letter, string};
 use combine::error::ParseError;
-use combine::{
-    attempt, between, chainl1, many1, parser, satisfy, ParseResult, Parser, Stream, StreamOnce,
-};
+use combine::{between, chainl1, many1, parser, satisfy, ParseResult, Parser, Stream, StreamOnce};
 use combine_language::{Identifier, LanguageDef, LanguageEnv};
 
 #[cfg(test)]
 use combine::error::Consumed::Consumed;
 
-// EXPR = many1(PAREN)
-// PAREN = "(", LAMBDA, ")" | LABMDA
+// EXPR = many1(LAMBDA)
 // LAMBDA = "\", Vec<String>, ".", BINOP | BINOP
 // BINOP = combine::chainl1(UNIOP, "=" | "->" | "&")
 // UNIOP = "-", TERM | TERM
-// TERM = Var(String) | EXPR
+// TERM = Var(String) | "(", EXPR, ")"
 
 #[test]
 fn test_combine() {
@@ -73,9 +70,9 @@ where
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
     let env = calc_env();
-    let expr = parser(expr);
+    let paren = env.parens(parser(expr));
     let var = env.identifier().map(|var: String| Box::new(Term::Var(var)));
-    var.or(expr).parse_stream(input)
+    var.or(paren).parse_stream(input)
 }
 
 fn negate<I>(input: &mut I) -> ParseResult<Box<Term>, I>
@@ -181,17 +178,8 @@ where
     parser(bind)
         .and(parser(binop))
         .map(|(bind, binop): (Vec<String>, Box<Term>)| Box::new(Term::Lambda(bind, binop)))
+        .or(parser(binop))
         .parse_stream(input)
-}
-
-fn paren<I>(input: &mut I) -> ParseResult<Box<Term>, I>
-where
-    I: Stream<Item = char>,
-    I::Error: ParseError<I::Item, I::Range, I::Position>,
-{
-    let env = calc_env();
-    let parenthesized = env.parens(parser(lambda_term));
-    parenthesized.or(parser(lambda_term)).parse_stream(input)
 }
 
 fn expr<I>(input: &mut I) -> ParseResult<Box<Term>, I>
@@ -199,10 +187,14 @@ where
     I: Stream<Item = char>,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
-    let apply = parser(paren)
-        .and(parser(paren))
-        .map(|(a, b)| Box::new(Term::Apply(a, b)));
-    apply.or(parser(paren)).parse_stream(input)
+    let mut apply = many1(parser(lambda_term)).map(|v: Vec<Box<Term>>| {
+        if v.len() == 2 {
+            Box::new(Term::Apply(v[0].clone(), v[1].clone()))
+        } else {
+            v[0].clone()
+        }
+    });
+    apply.parse_stream(input)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
