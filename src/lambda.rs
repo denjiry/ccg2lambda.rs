@@ -73,9 +73,9 @@ where
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
     let env = calc_env();
-    let parenthesized = env.parens(parser(expr));
+    let expr = parser(expr);
     let var = env.identifier().map(|var: String| Box::new(Term::Var(var)));
-    attempt(var).or(parenthesized).parse_stream(input)
+    var.or(expr).parse_stream(input)
 }
 
 fn negate<I>(input: &mut I) -> ParseResult<Box<Term>, I>
@@ -99,7 +99,7 @@ where
 {
     let negate = parser(negate);
     let term = parser(term);
-    attempt(negate).or(term).parse_stream(input)
+    negate.or(term).parse_stream(input)
 }
 
 #[test]
@@ -140,7 +140,7 @@ where
                 }
             }
         });
-    attempt(chainl1(parser(uniop), binop)).parse_stream(input)
+    chainl1(parser(uniop), binop).parse_stream(input)
 }
 
 fn apply<I>(input: &mut I) -> ParseResult<Box<Term>, I>
@@ -193,9 +193,20 @@ where
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
     parser(bind)
-        .and(parser(apply))
-        .map(|(bind, apply): (Vec<String>, Box<Term>)| Box::new(Term::Lambda(bind, apply)))
+        .and(parser(binop))
+        .map(|(bind, binop): (Vec<String>, Box<Term>)| Box::new(Term::Lambda(bind, binop)))
         .parse_stream(input)
+}
+
+fn paren<I>(input: &mut I) -> ParseResult<Box<Term>, I>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    let env = calc_env();
+    let parenthesized = env.parens(parser(expr));
+    let lambda_term = parser(lambda_term);
+    parenthesized.or(lambda_term).parse_stream(input)
 }
 
 fn expr<I>(input: &mut I) -> ParseResult<Box<Term>, I>
@@ -203,8 +214,10 @@ where
     I: Stream<Item = char>,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
-    let lambda_term = parser(lambda_term);
-    attempt(lambda_term).or(parser(apply)).parse_stream(input)
+    let apply = parser(paren)
+        .and(parser(paren))
+        .map(|(a, b)| Box::new(Term::Apply(a, b)));
+    attempt(apply).or(parser(paren)).parse_stream(input)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
