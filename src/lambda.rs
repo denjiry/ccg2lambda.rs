@@ -142,6 +142,17 @@ where
     chainl1(parser(uniop), binop).parse_stream(input)
 }
 
+fn apply<I>(input: &mut I) -> ParseResult<Box<Term>, I>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    let apply = parser(binop)
+        .and(parser(binop))
+        .map(|(a, b)| Box::new(Term::Apply(a, b)));
+    attempt(apply).or(parser(binop)).parse_stream(input)
+}
+
 #[test]
 fn test_bind() {
     let mut bindin = "\\ A b c dd.";
@@ -177,10 +188,10 @@ where
     I: Stream<Item = char>,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
+    let apply = parser(apply);
     parser(bind)
-        .and(parser(binop))
-        .map(|(bind, binop): (Vec<String>, Box<Term>)| Box::new(Term::Lambda(bind, binop)))
-        .or(parser(binop))
+        .and(apply)
+        .map(|(bind, apply): (Vec<String>, Box<Term>)| Box::new(Term::Lambda(bind, apply)))
         .parse_stream(input)
 }
 
@@ -189,10 +200,8 @@ where
     I: Stream<Item = char>,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
-    let apply = parser(lambda_term)
-        .and(parser(lambda_term))
-        .map(|(a, b)| Box::new(Term::Apply(a, b)));
-    attempt(apply).or(parser(lambda_term)).parse_stream(input)
+    let apply = parser(apply);
+    parser(lambda_term).or(apply).parse_stream(input)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
