@@ -8,10 +8,10 @@ use combine_language::{Identifier, LanguageDef, LanguageEnv};
 #[cfg(test)]
 use combine::error::Consumed::Consumed;
 
-// EXPR = many1(LAMBDA)
-// LAMBDA = "\", Vec<String>, ".", BINOP | BINOP
+// EXPR = "\", Vec<String>, ".", BINOP | BINOP
 // BINOP = combine::chainl1(UNIOP, "=" | "->" | "&")
-// UNIOP = "-", TERM | TERM
+// UNIOP = "-", APPLY | APPLY
+// APPLY = TERM, TERM | TERM
 // TERM = Var(String) | "(", EXPR, ")"
 
 #[test]
@@ -77,17 +77,28 @@ where
     var.or(paren).parse_stream(input)
 }
 
+fn apply<I>(input: &mut I) -> ParseResult<Box<Term>, I>
+where
+    I: Stream<Item = char>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+{
+    let apply = parser(term)
+        .and(parser(term))
+        .map(|(a, b)| Box::new(Term::Apply(a, b)));
+    attempt(apply).or(parser(term)).parse_stream(input)
+}
+
 fn negate<I>(input: &mut I) -> ParseResult<Box<Term>, I>
 where
     I: Stream<Item = char>,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
     let env = calc_env();
-    let term = parser(term);
+    let apply = parser(apply);
     let mut negate = env
         .reserved_op("-")
-        .and(term)
-        .map(|(_negate, term)| Box::new(Term::Negate(term)));
+        .and(apply)
+        .map(|(_negate, apply)| Box::new(Term::Negate(apply)));
     negate.parse_stream(input)
 }
 
@@ -97,8 +108,8 @@ where
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
     let negate = parser(negate);
-    let term = parser(term);
-    negate.or(term).parse_stream(input)
+    let apply = parser(apply);
+    negate.or(apply).parse_stream(input)
 }
 
 #[test]
@@ -142,17 +153,6 @@ where
     chainl1(parser(uniop), binop).parse_stream(input)
 }
 
-fn apply<I>(input: &mut I) -> ParseResult<Box<Term>, I>
-where
-    I: Stream<Item = char>,
-    I::Error: ParseError<I::Item, I::Range, I::Position>,
-{
-    let apply = parser(binop)
-        .and(parser(binop))
-        .map(|(a, b)| Box::new(Term::Apply(a, b)));
-    attempt(apply).or(parser(binop)).parse_stream(input)
-}
-
 #[test]
 fn test_bind() {
     let mut bindin = "\\ A b c dd.";
@@ -188,10 +188,10 @@ where
     I: Stream<Item = char>,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
-    let apply = parser(apply);
+    let binop = parser(binop);
     parser(bind)
-        .and(apply)
-        .map(|(bind, apply): (Vec<String>, Box<Term>)| Box::new(Term::Lambda(bind, apply)))
+        .and(binop)
+        .map(|(bind, binop): (Vec<String>, Box<Term>)| Box::new(Term::Lambda(bind, binop)))
         .parse_stream(input)
 }
 
@@ -200,8 +200,8 @@ where
     I: Stream<Item = char>,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
-    let apply = parser(apply);
-    parser(lambda_term).or(apply).parse_stream(input)
+    let binop = parser(binop);
+    parser(lambda_term).or(binop).parse_stream(input)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
