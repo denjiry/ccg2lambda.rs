@@ -8,11 +8,12 @@ use combine_language::{Identifier, LanguageDef, LanguageEnv};
 #[cfg(test)]
 use combine::error::Consumed::Consumed;
 
-// EXPR = "\", Vec<String>, ".", APP | APP
-// APP = Var(String), "(", BINOP, ")" | BINOP
+// EXPR = many1(PAREN)
+// PAREN = "(", LAMBDA, ")" | LABMDA
+// LAMBDA = "\", Vec<String>, ".", BINOP | BINOP
 // BINOP = combine::chainl1(UNIOP, "=" | "->" | "&")
 // UNIOP = "-", TERM | TERM
-// TERM = Var(String) | "(", EXPR, ")"
+// TERM = Var(String) | EXPR
 
 #[test]
 fn test_combine() {
