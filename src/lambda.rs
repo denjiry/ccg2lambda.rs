@@ -1,6 +1,8 @@
 use combine::char::{alpha_num, letter, string};
 use combine::error::ParseError;
-use combine::{between, chainl1, many1, parser, satisfy, ParseResult, Parser, Stream, StreamOnce};
+use combine::{
+    attempt, between, chainl1, many1, parser, satisfy, ParseResult, Parser, Stream, StreamOnce,
+};
 use combine_language::{Identifier, LanguageDef, LanguageEnv};
 
 #[cfg(test)]
@@ -187,14 +189,10 @@ where
     I: Stream<Item = char>,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
-    let mut apply = many1(parser(lambda_term)).map(|v: Vec<Box<Term>>| {
-        if v.len() == 2 {
-            Box::new(Term::Apply(v[0].clone(), v[1].clone()))
-        } else {
-            v[0].clone()
-        }
-    });
-    apply.parse_stream(input)
+    let apply = parser(lambda_term)
+        .and(parser(lambda_term))
+        .map(|(a, b)| Box::new(Term::Apply(a, b)));
+    attempt(apply).or(parser(lambda_term)).parse_stream(input)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
