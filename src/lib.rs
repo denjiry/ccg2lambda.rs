@@ -1,4 +1,3 @@
-pub mod ccg;
 pub mod lambda;
 pub mod parse;
 
